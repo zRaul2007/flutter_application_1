@@ -62,3 +62,7 @@ class PetCard extends StatelessWidget {
     );
   }
 }
+// O PetCard é um widget que representa um cartão visual para exibir informações de um animal de estimação.
+// Ele inclui uma imagem de avatar, nome, raça e idade do pet.
+// O cartão é clicável e, ao ser tocado, navega para a página de medições do pet,
+// onde o usuário pode ver detalhes adicionais e histórico de sinais vitais.

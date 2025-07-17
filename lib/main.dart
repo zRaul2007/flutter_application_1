@@ -92,3 +92,6 @@ class MeuApp extends StatelessWidget {
     );
   }
 }
+
+// A classe MeuApp é o widget principal da aplicação.
+// Ela define o tema da aplicação e a página inicial, que é a LoginPage.

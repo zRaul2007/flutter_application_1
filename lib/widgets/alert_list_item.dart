@@ -80,3 +80,5 @@ class AlertListItem extends StatelessWidget {
     );
   }
 }
+// Este widget exibe um alerta com informações sobre o pet e a gravidade do alerta.
+// Ele inclui um botão para reconhecer o alerta, que chama a função onAcknowledge quando pressionado.

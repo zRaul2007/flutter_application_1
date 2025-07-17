@@ -63,7 +63,7 @@ class _MeasurementsPageState extends State<MeasurementsPage> {
                         ),
                       ),
                       Text(
-                        '${widget.pet.breed} - ${widget.pet.species.name}',
+                        '${widget.pet.breed} - ${widget.pet.species.displayName}',
                         style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                       ),
                     ],

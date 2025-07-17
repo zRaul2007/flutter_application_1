@@ -61,3 +61,11 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 }
+// O MainScreen é o ponto de entrada para a navegação principal do aplicativo.
+// Ele permite que o usuário navegue entre as páginas de Pets, Alertas e Configurações
+// usando uma barra de navegação inferior. Cada página é representada por um widget
+// separado, e o estado do índice selecionado é gerenciado pelo MainScreen.
+// O uso de IndexedStack permite que as páginas sejam mantidas em memória,
+// evitando a necessidade de reconstruí-las ao navegar entre elas.
+// Isso melhora a performance e a experiência do usuário, especialmente em aplicativos
+// com várias páginas que não precisam ser recriadas toda vez que são acessadas.

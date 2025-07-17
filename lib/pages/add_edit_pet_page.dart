@@ -43,3 +43,6 @@ class AddEditPetPage extends StatelessWidget {
     );
   }
 }
+// A página AddEditPetPage é responsável por adicionar ou editar um pet.
+// Ela usa o PetForm para coletar os dados do pet e chama o método apropriado
+// do PetProvider para salvar as alterações.

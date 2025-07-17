@@ -1,11 +1,21 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 
-// Ele define as classes (modelos) que representam os dados da nossa aplicação.
-// Usar modelos de dados bem definidos torna o código mais seguro, legível e fácil de manter.
-
 // Análogo ao seu enum 'Species' em types.ts
-enum Species { dog, cat }
+enum Species {
+  dog,
+  cat;
+
+  // NOVO: Getter para traduzir o nome da espécie.
+  String get displayName {
+    switch (this) {
+      case Species.dog:
+        return 'Cachorro';
+      case Species.cat:
+        return 'Gato';
+    }
+  }
+}
 
 // Análogo ao seu enum 'HealthStatus' em types.ts
 enum HealthStatus { stable, attention, critical, unknown }

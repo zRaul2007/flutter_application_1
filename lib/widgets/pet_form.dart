@@ -187,7 +187,10 @@ class _PetFormState extends State<PetForm> {
                   decoration: const InputDecoration(labelText: 'Espécie'),
                   items: Species.values
                       .map(
-                        (s) => DropdownMenuItem(value: s, child: Text(s.name)),
+                        (s) => DropdownMenuItem(
+                          value: s,
+                          child: Text(s.displayName),
+                        ),
                       )
                       .toList(),
                   onChanged: (v) => setState(() => _selectedSpecies = v!),
@@ -268,3 +271,5 @@ class _PetFormState extends State<PetForm> {
     );
   }
 }
+// Este widget é um formulário para adicionar ou editar informações de um pet.
+// Ele permite que o usuário insira dados como nome, raça, idade, espécie,

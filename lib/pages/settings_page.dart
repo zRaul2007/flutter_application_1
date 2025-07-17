@@ -27,3 +27,5 @@ class SettingsPage extends StatelessWidget {
     );
   }
 }
+// Este é um exemplo básico de uma página de configurações.
+// Podemos expandir com mais opções conforme necessário.
