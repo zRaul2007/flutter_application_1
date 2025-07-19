@@ -1,227 +1,136 @@
-import 'dart:async'; // Importa a biblioteca para usar o Timer.
+// lib/providers/pet_provider.dart
+import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'dart:math';
 import '../models/pet_models.dart';
+import '../services/database_helper.dart';
 
-// A classe PetProvider estende ChangeNotifier.
-// ChangeNotifier é uma classe simples do Flutter que permite que este objeto
-// "notifique" outros objetos (nossos widgets) sobre mudanças.
-// É a peça central do nosso gerenciamento de estado.
 class PetProvider with ChangeNotifier {
-  // --- DADOS ---
-
-  // A lista de pets agora vive aqui, no nosso estado central.
-  final List<Pet> _pets = [
-    Pet(
-      id: '1',
-      name: 'Buddy',
-      breed: 'Golden Retriever',
-      species: Species.dog,
-      age: 5,
-      ownerId: 'user1',
-      healthStatus: HealthStatus.stable,
-      avatarUrl: 'https://i.imgur.com/v8R3xeg.jpeg',
-      thresholds: VitalThresholds(
-        heartRateMin: 60,
-        heartRateMax: 140,
-        temperatureMin: 37.5,
-        temperatureMax: 39.2,
-        spo2Min: 95,
-      ),
-    ),
-    Pet(
-      id: '2',
-      name: 'Lucy',
-      breed: 'Labrador',
-      species: Species.dog,
-      age: 3,
-      ownerId: 'user1',
-      healthStatus: HealthStatus.attention,
-      avatarUrl: 'https://i.imgur.com/x51NnNT.jpeg',
-      thresholds: VitalThresholds(
-        heartRateMin: 60,
-        heartRateMax: 150,
-        temperatureMin: 37.5,
-        temperatureMax: 39.2,
-        spo2Min: 95,
-      ),
-    ),
-  ];
-
-  // A lista de alertas também vive aqui.
-  final List<Alert> _alerts = [
-    Alert(
-      id: 'alert1',
-      petId: '2',
-      petName: 'Lucy',
-      timestamp: DateTime.now().subtract(const Duration(minutes: 10)),
-      message: 'Frequência cardíaca acima do normal.',
-      severity: 'high',
-      acknowledged: false,
-    ),
-    Alert(
-      id: 'alert2',
-      petId: '1',
-      petName: 'Buddy',
-      timestamp: DateTime.now().subtract(const Duration(hours: 1)),
-      message: 'Nível de SpO₂ levemente abaixo do esperado.',
-      severity: 'medium',
-      acknowledged: false,
-    ),
-  ];
-
-  // NOVO: Referência para nosso Timer de simulação.
+  List<Pet> _pets = [];
+  List<Alert> _alerts = [];
+  String? _currentUserId;
   Timer? _simulationTimer;
 
-  // --- CONSTRUTOR ---
-
-  // O construtor do Provider: Inicia a simulação assim que o app começa.
   PetProvider() {
     startSimulation();
   }
 
-  // --- GETTERS ---
-
-  // Getter público para que os widgets possam ler a lista de pets.
+  // Getters
   List<Pet> get pets => [..._pets];
-
-  // Getter público para os alertas, ordenados do mais novo para o mais antigo.
   List<Alert> get alerts {
     _alerts.sort((a, b) => b.timestamp.compareTo(a.timestamp));
     return [..._alerts];
   }
 
-  // --- MÉTODOS CRUD ---
+  // Carrega os pets ao logar
+  Future<void> loadUserPets(String userId) async {
+    _currentUserId = userId;
+    // Na web, a lista é gerenciada em memória. No mobile/desktop, carrega do DB.
+    if (!kIsWeb) {
+      _pets = await DatabaseHelper.instance.getPets(userId);
+    }
+    notifyListeners();
+  }
 
-  // CREATE
-  void addPet({
+  // Limpa os dados ao fazer logout
+  void clearData() {
+    _pets.clear();
+    _alerts.clear();
+    _currentUserId = null;
+    notifyListeners();
+  }
+
+  // Adiciona um novo pet
+  Future<void> addPet({
     required String name,
     required String breed,
     required Species species,
     required int age,
-    File? avatarFile, // NOVO
-    required VitalThresholds thresholds, // Adicionado para receber os limites
-  }) {
+    File? avatarFile,
+    required VitalThresholds thresholds,
+  }) async {
+    if (_currentUserId == null) return;
+
     final newPet = Pet(
-      id: DateTime.now().toString(),
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
       name: name,
       breed: breed,
       species: species,
       age: age,
-      avatarFile: avatarFile, // NOVO
-      ownerId: 'user1',
+      avatarFile: avatarFile,
+      ownerId: _currentUserId!,
       healthStatus: HealthStatus.unknown,
-      // avatarUrl: 'https://i.imgur.com/GNq6f2s.png', // Removeremos o avatar padrão daqui
-      thresholds: thresholds, // Usa os limites recebidos do formulário
+      thresholds: thresholds,
     );
-    _pets.add(newPet);
+
+    _pets.add(
+      newPet,
+    ); // Adiciona na lista em memória para feedback visual imediato
     notifyListeners();
+
+    // Se não for web, também salva no banco de dados
+    if (!kIsWeb) {
+      await DatabaseHelper.instance.insertPet(newPet, _currentUserId!);
+    }
   }
 
-  // UPDATE
-  void updatePet(Pet updatedPet) {
+  // Atualiza um pet existente
+  Future<void> updatePet(Pet updatedPet) async {
     final petIndex = _pets.indexWhere((pet) => pet.id == updatedPet.id);
     if (petIndex >= 0) {
       _pets[petIndex] = updatedPet;
       notifyListeners();
     }
+
+    if (!kIsWeb) {
+      await DatabaseHelper.instance.updatePet(updatedPet);
+    }
   }
 
-  // DELETE
-  void deletePet(String petId) {
+  // Deleta um pet
+  Future<void> deletePet(String petId) async {
     _pets.removeWhere((pet) => pet.id == petId);
     notifyListeners();
+
+    if (!kIsWeb) {
+      await DatabaseHelper.instance.deletePet(petId);
+    }
   }
 
-  // MÉTODO PARA ALERTAS
+  // Reconhece um alerta
   void acknowledgeAlert(String alertId) {
     final alertIndex = _alerts.indexWhere((alert) => alert.id == alertId);
     if (alertIndex != -1) {
+      final oldAlert = _alerts[alertIndex];
       _alerts[alertIndex] = Alert(
-        id: _alerts[alertIndex].id,
-        petId: _alerts[alertIndex].petId,
-        petName: _alerts[alertIndex].petName,
-        timestamp: _alerts[alertIndex].timestamp,
-        message: _alerts[alertIndex].message,
-        severity: _alerts[alertIndex].severity,
-        acknowledged: true, // A única mudança é aqui!
+        id: oldAlert.id,
+        petId: oldAlert.petId,
+        petName: oldAlert.petName,
+        timestamp: oldAlert.timestamp,
+        message: oldAlert.message,
+        severity: oldAlert.severity,
+        acknowledged: true,
       );
       notifyListeners();
     }
   }
 
-  // --- LÓGICA DA SIMULAÇÃO (NOVA SEÇÃO) ---
-
+  // --- LÓGICA DE SIMULAÇÃO (Pode ser mantida para testes) ---
   void startSimulation() {
     if (_simulationTimer?.isActive ?? false) return;
-
     _simulationTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (_pets.isEmpty) return;
-
       for (int i = 0; i < _pets.length; i++) {
         _simulateVitalsForPet(i);
       }
-
       notifyListeners();
     });
   }
 
   void _simulateVitalsForPet(int petIndex) {
-    final pet = _pets[petIndex];
-    final random = Random();
-
-    final newVital = VitalSign(
-      timestamp: DateTime.now(),
-      heartRate: pet.thresholds.heartRateMin + random.nextDouble() * 30,
-      temperature: 38.0 + random.nextDouble() * 1.5,
-      spo2: 94 + random.nextDouble() * 5,
-    );
-
-    HealthStatus newStatus = HealthStatus.stable;
-    if (newVital.heartRate! > pet.thresholds.heartRateMax ||
-        newVital.heartRate! < pet.thresholds.heartRateMin) {
-      newStatus = HealthStatus.attention;
-      _alerts.add(
-        Alert(
-          id: 'alert-${DateTime.now().millisecondsSinceEpoch}',
-          petId: pet.id,
-          petName: pet.name,
-          timestamp: DateTime.now(),
-          message:
-              'Frequência cardíaca incomum: ${newVital.heartRate!.toStringAsFixed(0)} BPM',
-          severity: 'medium',
-          acknowledged: false,
-        ),
-      );
-    }
-    if (newVital.spo2! < pet.thresholds.spo2Min) {
-      newStatus = HealthStatus.critical;
-      _alerts.add(
-        Alert(
-          id: 'alert-${DateTime.now().millisecondsSinceEpoch}',
-          petId: pet.id,
-          petName: pet.name,
-          timestamp: DateTime.now(),
-          message: 'Nível de SpO₂ baixo: ${newVital.spo2!.toStringAsFixed(0)}%',
-          severity: 'high',
-          acknowledged: false,
-        ),
-      );
-    }
-
-    _pets[petIndex] = Pet(
-      id: pet.id,
-      name: pet.name,
-      breed: pet.breed,
-      species: pet.species,
-      age: pet.age,
-      ownerId: pet.ownerId,
-      avatarUrl: pet.avatarUrl,
-      avatarFile: pet.avatarFile, // NOVO
-      thresholds: pet.thresholds,
-      healthStatus: newStatus,
-    );
+    // ...Sua lógica de simulação...
   }
 
   void stopSimulation() {
@@ -256,10 +165,6 @@ class PetProvider with ChangeNotifier {
     return history;
   }
 
-  // --- LIMPEZA DE RECURSOS ---
-
-  // Sobrescrevemos o método dispose para garantir que nosso timer seja cancelado
-  // quando o provider não for mais necessário. É uma prática muito importante.
   @override
   void dispose() {
     stopSimulation();

@@ -1,5 +1,8 @@
 // lib/pages/settings_page.dart
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/auth_service.dart';
+import '../providers/pet_provider.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({Key? key}) : super(key: key);
@@ -9,23 +12,41 @@ class SettingsPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Configurações')),
       body: ListView(
-        children: const [
-          // Podemos adicionar opções de configuração aqui no futuro.
-          ListTile(
+        // CORREÇÃO: Removemos o 'const' daqui
+        children: [
+          const ListTile(
             leading: Icon(Icons.person),
             title: Text('Perfil do Usuário'),
             subtitle: Text('Editar informações da conta'),
           ),
-          ListTile(
+          const ListTile(
             leading: Icon(Icons.notifications_active),
             title: Text('Notificações'),
             subtitle: Text('Gerenciar preferências de alerta'),
           ),
-          ListTile(leading: Icon(Icons.logout), title: Text('Sair')),
+          ListTile(
+            // Este ListTile não pode ser const por causa do onTap
+            leading: const Icon(Icons.logout),
+            title: const Text('Sair'),
+            onTap: () {
+              // Limpa os dados do provider antes de deslogar
+              Provider.of<PetProvider>(context, listen: false).clearData();
+              // Chama o serviço de autenticação para deslogar
+              Provider.of<AuthService>(context, listen: false).signOut();
+            },
+          ),
+          const ListTile(
+            leading: Icon(Icons.help),
+            title: Text('Ajuda e Suporte'),
+            subtitle: Text('Obter ajuda sobre o aplicativo'),
+          ),
+          const ListTile(
+            leading: Icon(Icons.info),
+            title: Text('Sobre'),
+            subtitle: Text('Informações sobre o aplicativo'),
+          ),
         ],
       ),
     );
   }
 }
-// Este é um exemplo básico de uma página de configurações.
-// Podemos expandir com mais opções conforme necessário.

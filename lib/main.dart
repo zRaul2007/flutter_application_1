@@ -1,14 +1,60 @@
 // lib/main.dart
-
+import 'dart:io'; // NECESSÁRIO para usar 'Platform'
+import 'package:flutter/foundation.dart'
+    show kIsWeb; // NECESSÁRIO para usar 'kIsWeb'
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_application_1/pages/login_page.dart';
-import 'package:flutter_application_1/providers/pet_provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart'; // NECESSÁRIO para o banco de dados no desktop/web
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
-void main() {
+import 'package:flutter_application_1/pages/login_page.dart';
+import 'package:flutter_application_1/pages/main_screen.dart';
+import 'package:flutter_application_1/providers/pet_provider.dart';
+import 'package:flutter_application_1/services/auth_service.dart';
+
+void main() async {
+  // Garante que os bindings do Flutter foram inicializados
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Lógica de inicialização do banco de dados
+  if (kIsWeb) {
+    // Usa a "fábrica" de banco de dados específica para a web
+    databaseFactory = databaseFactoryFfiWeb;
+  } else if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    // Usa a "fábrica" de banco de dados para desktop
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
+
+  // Suas credenciais do Firebase
+  const firebaseConfig = {
+    'apiKey': "AIzaSyAR8oiNXJQ6StRQ1-1h-vzurp7zDR-tOY4",
+    'authDomain': "pet-monitor-e0437.firebaseapp.com",
+    'projectId': "pet-monitor-e0437",
+    'storageBucket': "pet-monitor-e0437.appspot.com",
+    'messagingSenderId': "903104501156",
+    'appId': "1:903104501156:web:1b1d4e4ea9a8c3fdb69d31",
+  };
+
+  await Firebase.initializeApp(
+    options: FirebaseOptions(
+      apiKey: firebaseConfig['apiKey']!,
+      authDomain: firebaseConfig['authDomain']!,
+      projectId: firebaseConfig['projectId']!,
+      storageBucket: firebaseConfig['storageBucket']!,
+      messagingSenderId: firebaseConfig['messagingSenderId']!,
+      appId: firebaseConfig['appId']!,
+    ),
+  );
+
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => PetProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => PetProvider()),
+        Provider<AuthService>(create: (_) => AuthService()),
+      ],
       child: const MeuApp(),
     ),
   );
@@ -41,10 +87,8 @@ class MeuApp extends StatelessWidget {
           backgroundColor: Colors.blue[800],
           foregroundColor: Colors.white,
         ),
-        // --- CORREÇÃO AQUI ---
         // A propriedade 'cardTheme' espera um objeto do tipo 'CardThemeData'.
         cardTheme: CardThemeData(
-          // Alterado de CardTheme para CardThemeData
           elevation: 2,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -88,10 +132,46 @@ class MeuApp extends StatelessWidget {
         ),
       ),
       themeMode: ThemeMode.system,
-      home: const LoginPage(),
+      home: const AuthWrapper(),
+    );
+  }
+}
+
+// Widget que gerencia o estado da autenticação e a navegação
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final authService = Provider.of<AuthService>(context, listen: false);
+
+    // StreamBuilder ouve as mudanças no status do login em tempo real
+    return StreamBuilder<User?>(
+      stream: authService.user,
+      builder: (context, snapshot) {
+        // Enquanto verifica, mostra um spinner
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        // Se o snapshot tem dados, significa que o usuário está logado
+        if (snapshot.hasData) {
+          final petProvider = Provider.of<PetProvider>(context, listen: false);
+          // Carrega os pets associados a este usuário do banco de dados
+          petProvider.loadUserPets(snapshot.data!.uid);
+          // Mostra a tela principal
+          return const MainScreen();
+        }
+
+        // Se não tem dados, o usuário não está logado
+        // Mostra a tela de login
+        return const LoginPage();
+      },
     );
   }
 }
 
 // A classe MeuApp é o widget principal da aplicação.
-// Ela define o tema da aplicação e a página inicial, que é a LoginPage.
+// Ela define o tema da aplicação e a página inicial, que é a AuthWrapper.

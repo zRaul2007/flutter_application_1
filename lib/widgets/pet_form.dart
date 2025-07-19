@@ -1,14 +1,12 @@
+// lib/widgets/pet_form.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/pet_models.dart';
 
-// Definimos um tipo para nossa função de callback para tornar o código mais limpo.
-// Ela agora passará um objeto Pet completo.
 typedef PetSubmitCallback = void Function(Pet petData);
 
 class PetForm extends StatefulWidget {
-  // O formulário agora pode receber um pet inicial (para modo de edição).
   final Pet? initialPet;
   final PetSubmitCallback onSubmit;
 
@@ -22,7 +20,6 @@ class PetForm extends StatefulWidget {
 class _PetFormState extends State<PetForm> {
   final _formKey = GlobalKey<FormState>();
 
-  // Um controlador para cada campo do formulário.
   late TextEditingController _nameController;
   late TextEditingController _breedController;
   late TextEditingController _ageController;
@@ -33,42 +30,38 @@ class _PetFormState extends State<PetForm> {
   late TextEditingController _spo2MinController;
 
   Species _selectedSpecies = Species.dog;
-  File? _pickedImage; // NOVO: Para armazenar a imagem selecionada.
+  File? _pickedImage;
 
   @override
   void initState() {
     super.initState();
-    // Inicializamos os controladores.
-    // Se estivermos em modo de edição (widget.initialPet != null),
-    // preenchemos os campos com os dados do pet. Caso contrário, ficam vazios.
     final pet = widget.initialPet;
     _nameController = TextEditingController(text: pet?.name ?? '');
     _breedController = TextEditingController(text: pet?.breed ?? '');
     _ageController = TextEditingController(text: pet?.age.toString() ?? '');
     _selectedSpecies = pet?.species ?? Species.dog;
-    _pickedImage = pet?.avatarFile; // NOVO
+    _pickedImage = pet?.avatarFile;
 
-    // Campos de limites (thresholds)
+    // Preenche com valores padrão se for um novo pet
     _hrMinController = TextEditingController(
-      text: pet?.thresholds.heartRateMin.toString() ?? '',
+      text: pet?.thresholds.heartRateMin.toString() ?? '60',
     );
     _hrMaxController = TextEditingController(
-      text: pet?.thresholds.heartRateMax.toString() ?? '',
+      text: pet?.thresholds.heartRateMax.toString() ?? '140',
     );
     _tempMinController = TextEditingController(
-      text: pet?.thresholds.temperatureMin.toString() ?? '',
+      text: pet?.thresholds.temperatureMin.toString() ?? '37.5',
     );
     _tempMaxController = TextEditingController(
-      text: pet?.thresholds.temperatureMax.toString() ?? '',
+      text: pet?.thresholds.temperatureMax.toString() ?? '39.2',
     );
     _spo2MinController = TextEditingController(
-      text: pet?.thresholds.spo2Min.toString() ?? '',
+      text: pet?.thresholds.spo2Min.toString() ?? '95',
     );
   }
 
   @override
   void dispose() {
-    // É importante limpar todos os controladores para liberar memória.
     _nameController.dispose();
     _breedController.dispose();
     _ageController.dispose();
@@ -80,10 +73,12 @@ class _PetFormState extends State<PetForm> {
     super.dispose();
   }
 
-  // NOVO: Função para pegar a imagem.
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 50,
+    );
 
     if (pickedFile != null) {
       setState(() {
@@ -93,20 +88,23 @@ class _PetFormState extends State<PetForm> {
   }
 
   void _trySubmit() {
+    // Esta linha agora irá acionar os validadores e mostrar as mensagens de erro
     final isValid = _formKey.currentState?.validate() ?? false;
+
     if (!isValid) {
-      return;
+      return; // A submissão é interrompida se o formulário não for válido
     }
 
-    // Coleta todos os dados dos controladores e cria um novo objeto Pet.
-    // Se for modo de edição, reutilizamos o ID e outras propriedades existentes.
     final petData = Pet(
-      id: widget.initialPet?.id ?? DateTime.now().toString(),
+      id: widget.initialPet?.id ?? '',
       name: _nameController.text,
       breed: _breedController.text,
       species: _selectedSpecies,
       age: int.parse(_ageController.text),
-      avatarFile: _pickedImage, // NOVO
+      avatarFile: _pickedImage,
+      ownerId: widget.initialPet?.ownerId ?? '',
+      healthStatus: widget.initialPet?.healthStatus ?? HealthStatus.unknown,
+      avatarUrl: widget.initialPet?.avatarUrl,
       thresholds: VitalThresholds(
         heartRateMin: double.parse(_hrMinController.text),
         heartRateMax: double.parse(_hrMaxController.text),
@@ -114,14 +112,28 @@ class _PetFormState extends State<PetForm> {
         temperatureMax: double.parse(_tempMaxController.text),
         spo2Min: double.parse(_spo2MinController.text),
       ),
-      // Propriedades que não são do formulário, mas precisam ser mantidas.
-      ownerId: widget.initialPet?.ownerId ?? 'user1',
-      healthStatus: widget.initialPet?.healthStatus ?? HealthStatus.unknown,
-      avatarUrl: widget.initialPet?.avatarUrl,
     );
 
-    // Chama o callback passando o objeto Pet completo.
     widget.onSubmit(petData);
+  }
+
+  // Validador para campos de texto que não podem ser vazios
+  String? _validateNotEmpty(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Este campo é obrigatório.';
+    }
+    return null;
+  }
+
+  // Validador para campos que devem ser numéricos
+  String? _validateIsNumber(String? value) {
+    if (_validateNotEmpty(value) != null) {
+      return 'Este campo é obrigatório.';
+    }
+    if (double.tryParse(value!) == null) {
+      return 'Por favor, insira um número válido.';
+    }
+    return null;
   }
 
   @override
@@ -131,7 +143,7 @@ class _PetFormState extends State<PetForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Seção de Foto do Pet (NOVO)
+          // ... (código do seletor de imagem, que está correto) ...
           Center(
             child: Column(
               children: [
@@ -139,7 +151,14 @@ class _PetFormState extends State<PetForm> {
                   radius: 50,
                   backgroundImage: _pickedImage != null
                       ? FileImage(_pickedImage!)
-                      : (widget.initialPet?.avatar),
+                      : (widget.initialPet?.avatarFile != null
+                                ? FileImage(widget.initialPet!.avatarFile!)
+                                : (widget.initialPet?.avatarUrl != null
+                                      ? NetworkImage(
+                                          widget.initialPet!.avatarUrl!,
+                                        )
+                                      : null))
+                            as ImageProvider?,
                   child:
                       _pickedImage == null && widget.initialPet?.avatar == null
                       ? const Icon(Icons.pets, size: 50)
@@ -154,8 +173,6 @@ class _PetFormState extends State<PetForm> {
             ),
           ),
           const SizedBox(height: 16),
-
-          // Seção de Informações do Pet
           Text(
             'Informações do Pet',
             style: Theme.of(context).textTheme.titleLarge,
@@ -164,11 +181,13 @@ class _PetFormState extends State<PetForm> {
           TextFormField(
             controller: _nameController,
             decoration: const InputDecoration(labelText: 'Nome'),
+            validator: _validateNotEmpty, // Adicionando o validador
           ),
           const SizedBox(height: 12),
           TextFormField(
             controller: _breedController,
             decoration: const InputDecoration(labelText: 'Raça'),
+            validator: _validateNotEmpty, // Adicionando o validador
           ),
           const SizedBox(height: 12),
           Row(
@@ -178,6 +197,7 @@ class _PetFormState extends State<PetForm> {
                   controller: _ageController,
                   decoration: const InputDecoration(labelText: 'Idade'),
                   keyboardType: TextInputType.number,
+                  validator: _validateIsNumber, // Adicionando o validador
                 ),
               ),
               const SizedBox(width: 12),
@@ -200,7 +220,6 @@ class _PetFormState extends State<PetForm> {
           ),
           const SizedBox(height: 24),
 
-          // Seção de Limites de Alerta
           Text(
             'Limites de Alerta',
             style: Theme.of(context).textTheme.titleLarge,
@@ -213,6 +232,7 @@ class _PetFormState extends State<PetForm> {
                   controller: _hrMinController,
                   decoration: const InputDecoration(labelText: 'BPM Mín.'),
                   keyboardType: TextInputType.number,
+                  validator: _validateIsNumber, // Adicionando o validador
                 ),
               ),
               const SizedBox(width: 12),
@@ -221,11 +241,13 @@ class _PetFormState extends State<PetForm> {
                   controller: _hrMaxController,
                   decoration: const InputDecoration(labelText: 'BPM Máx.'),
                   keyboardType: TextInputType.number,
+                  validator: _validateIsNumber, // Adicionando o validador
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
+          // ... (Resto dos campos de limites com seus validadores) ...
           Row(
             children: [
               Expanded(
@@ -235,6 +257,7 @@ class _PetFormState extends State<PetForm> {
                     labelText: 'Temp. Mín. (°C)',
                   ),
                   keyboardType: TextInputType.number,
+                  validator: _validateIsNumber,
                 ),
               ),
               const SizedBox(width: 12),
@@ -245,6 +268,7 @@ class _PetFormState extends State<PetForm> {
                     labelText: 'Temp. Máx. (°C)',
                   ),
                   keyboardType: TextInputType.number,
+                  validator: _validateIsNumber,
                 ),
               ),
             ],
@@ -254,11 +278,11 @@ class _PetFormState extends State<PetForm> {
             controller: _spo2MinController,
             decoration: const InputDecoration(labelText: 'SpO₂ Mín. (%)'),
             keyboardType: TextInputType.number,
+            validator: _validateIsNumber,
           ),
-
           const SizedBox(height: 24),
           ElevatedButton(
-            onPressed: _trySubmit,
+            onPressed: _trySubmit, // Este botão agora funciona como esperado
             style: ElevatedButton.styleFrom(
               minimumSize: const Size(double.infinity, 50),
             ),
@@ -271,5 +295,5 @@ class _PetFormState extends State<PetForm> {
     );
   }
 }
-// Este widget é um formulário para adicionar ou editar informações de um pet.
-// Ele permite que o usuário insira dados como nome, raça, idade, espécie,
+// Esta classe PetForm é um formulário para adicionar ou editar informações de um pet.
+// Ela inclui campos para nome, raça, idade, espécie, foto e limites de alerta de saúde.
