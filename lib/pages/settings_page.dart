@@ -24,17 +24,6 @@ class SettingsPage extends StatelessWidget {
             title: Text('Notificações'),
             subtitle: Text('Gerenciar preferências de alerta'),
           ),
-          ListTile(
-            // Este ListTile não pode ser const por causa do onTap
-            leading: const Icon(Icons.logout),
-            title: const Text('Sair'),
-            onTap: () {
-              // Limpa os dados do provider antes de deslogar
-              Provider.of<PetProvider>(context, listen: false).clearData();
-              // Chama o serviço de autenticação para deslogar
-              Provider.of<AuthService>(context, listen: false).signOut();
-            },
-          ),
           const ListTile(
             leading: Icon(Icons.help),
             title: Text('Ajuda e Suporte'),
@@ -44,6 +33,17 @@ class SettingsPage extends StatelessWidget {
             leading: Icon(Icons.info),
             title: Text('Sobre'),
             subtitle: Text('Informações sobre o aplicativo'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.logout),
+            title: const Text('Sair'),
+            onTap: () {
+              // Limpa os dados do provider antes de deslogar
+              Provider.of<PetProvider>(context, listen: false).clearData();
+
+              // Chama o serviço de autenticação para deslogar
+              Provider.of<AuthService>(context, listen: false).signOut();
+            },
           ),
         ],
       ),

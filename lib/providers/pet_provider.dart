@@ -1,13 +1,14 @@
 // lib/providers/pet_provider.dart
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'dart:math';
 import '../models/pet_models.dart';
-import '../services/database_helper.dart';
+import '../services/firestore_service.dart'; // Importa o novo serviço
 
 class PetProvider with ChangeNotifier {
+  final FirestoreService _firestoreService =
+      FirestoreService(); // Instancia o serviço
   List<Pet> _pets = [];
   List<Alert> _alerts = [];
   String? _currentUserId;
@@ -27,10 +28,8 @@ class PetProvider with ChangeNotifier {
   // Carrega os pets ao logar
   Future<void> loadUserPets(String userId) async {
     _currentUserId = userId;
-    // Na web, a lista é gerenciada em memória. No mobile/desktop, carrega do DB.
-    if (!kIsWeb) {
-      _pets = await DatabaseHelper.instance.getPets(userId);
-    }
+    // Carrega os pets do Firestore
+    _pets = await _firestoreService.getPetsForUser(userId);
     notifyListeners();
   }
 
@@ -53,51 +52,70 @@ class PetProvider with ChangeNotifier {
   }) async {
     if (_currentUserId == null) return;
 
+    String petId = DateTime.now().millisecondsSinceEpoch.toString();
+    String? avatarUrl;
+
+    // 1. Faz o upload da imagem (se houver) para o Firebase Storage
+    if (avatarFile != null) {
+      avatarUrl = await _firestoreService.uploadAvatar(petId, avatarFile);
+    }
+
     final newPet = Pet(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: petId,
       name: name,
       breed: breed,
       species: species,
       age: age,
       avatarFile: avatarFile,
+      avatarUrl: avatarUrl, // Salva a URL da imagem
       ownerId: _currentUserId!,
       healthStatus: HealthStatus.unknown,
       thresholds: thresholds,
     );
 
-    _pets.add(
-      newPet,
-    ); // Adiciona na lista em memória para feedback visual imediato
-    notifyListeners();
+    // 2. Salva os dados do pet no Firestore
+    await _firestoreService.setPet(newPet);
 
-    // Se não for web, também salva no banco de dados
-    if (!kIsWeb) {
-      await DatabaseHelper.instance.insertPet(newPet, _currentUserId!);
-    }
+    _pets.add(newPet);
+    notifyListeners();
   }
 
   // Atualiza um pet existente
   Future<void> updatePet(Pet updatedPet) async {
-    final petIndex = _pets.indexWhere((pet) => pet.id == updatedPet.id);
-    if (petIndex >= 0) {
-      _pets[petIndex] = updatedPet;
-      notifyListeners();
+    String? newAvatarUrl;
+
+    // 1. Verifica se uma nova imagem foi selecionada
+    if (updatedPet.avatarFile != null) {
+      newAvatarUrl = await _firestoreService.uploadAvatar(
+        updatedPet.id,
+        updatedPet.avatarFile!,
+      );
     }
 
-    if (!kIsWeb) {
-      await DatabaseHelper.instance.updatePet(updatedPet);
+    // Cria uma cópia final para salvar, com a nova URL se houver
+    final finalPet = updatedPet.copyWith(
+      avatarUrl: newAvatarUrl, // usa a nova URL ou mantém a antiga se for nula
+    );
+
+    // 2. Salva as alterações no Firestore
+    await _firestoreService.setPet(finalPet);
+
+    final petIndex = _pets.indexWhere((pet) => pet.id == finalPet.id);
+    if (petIndex >= 0) {
+      _pets[petIndex] = finalPet;
+      notifyListeners();
     }
   }
 
   // Deleta um pet
   Future<void> deletePet(String petId) async {
+    await _firestoreService.deletePet(petId);
     _pets.removeWhere((pet) => pet.id == petId);
     notifyListeners();
-
-    if (!kIsWeb) {
-      await DatabaseHelper.instance.deletePet(petId);
-    }
   }
+
+  // O restante da sua classe (simulação, acknowledgeAlert, etc.) pode continuar o mesmo.
+  // ...
 
   // Reconhece um alerta
   void acknowledgeAlert(String alertId) {
@@ -117,7 +135,6 @@ class PetProvider with ChangeNotifier {
     }
   }
 
-  // --- LÓGICA DE SIMULAÇÃO (Pode ser mantida para testes) ---
   void startSimulation() {
     if (_simulationTimer?.isActive ?? false) return;
     _simulationTimer = Timer.periodic(const Duration(seconds: 5), (timer) {

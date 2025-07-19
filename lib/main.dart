@@ -159,7 +159,7 @@ class AuthWrapper extends StatelessWidget {
         // Se o snapshot tem dados, significa que o usuário está logado
         if (snapshot.hasData) {
           final petProvider = Provider.of<PetProvider>(context, listen: false);
-          // Carrega os pets associados a este usuário do banco de dados
+          // **AQUI ESTÁ A MÁGICA**: Carrega os pets associados a este usuário
           petProvider.loadUserPets(snapshot.data!.uid);
           // Mostra a tela principal
           return const MainScreen();

@@ -33,7 +33,9 @@ class DatabaseHelper {
     // A criação da tabela só é relevante para plataformas não-web, mas não causa mal.
     await db.execute('''
       CREATE TABLE pets (
-        id TEXT PRIMARY KEY, ownerId TEXT NOT NULL, name TEXT NOT NULL,
+        id TEXT PRIMARY KEY,
+        ownerId TEXT NOT NULL, -- Coluna adicionada para o ID do usuário
+        name TEXT NOT NULL,
         breed TEXT NOT NULL, species TEXT NOT NULL, age INTEGER NOT NULL,
         avatarUrl TEXT, avatarFile TEXT, healthStatus TEXT NOT NULL,
         heartRateMin REAL NOT NULL, heartRateMax REAL NOT NULL,
@@ -42,13 +44,14 @@ class DatabaseHelper {
     ''');
   }
 
-  // --- MÉTODOS CRUD MODIFICADOS PARA IGNORAR A WEB ---
+  // --- MÉTODOS CRUD MODIFICADOS ---
 
+  // Agora, ao inserir, passamos o ID do dono
   Future<void> insertPet(Pet pet, String ownerId) async {
     if (kIsWeb) return; // Na web, não faz nada
     final db = await instance.database;
     final petMap = pet.toMap();
-    petMap['ownerId'] = ownerId;
+    petMap['ownerId'] = ownerId; // Garante que o ID do dono está no mapa
     await db.insert(
       'pets',
       petMap,
@@ -56,13 +59,14 @@ class DatabaseHelper {
     );
   }
 
+  // A busca agora é filtrada pelo ID do dono
   Future<List<Pet>> getPets(String ownerId) async {
     if (kIsWeb) return []; // Na web, retorna uma lista vazia
     final db = await instance.database;
     final maps = await db.query(
       'pets',
-      where: 'ownerId = ?',
-      whereArgs: [ownerId],
+      where: 'ownerId = ?', // Cláusula WHERE para filtrar
+      whereArgs: [ownerId], // Argumento para a cláusula WHERE
     );
     return maps.isNotEmpty
         ? maps.map((json) => Pet.fromMap(json)).toList()

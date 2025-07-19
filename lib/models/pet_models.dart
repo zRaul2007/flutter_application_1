@@ -97,10 +97,10 @@ class Pet {
       'id': id,
       'name': name,
       'breed': breed,
-      'species': species.toString().split('.').last, // Salva o enum como texto
+      'species': species.toString().split('.').last,
       'age': age,
-      'avatarUrl': avatarUrl,
-      'avatarFile': avatarFile?.path,
+      'avatarUrl': avatarUrl, // O avatarUrl é o que será salvo!
+      //'avatarFile': avatarFile?.path, // REMOVA OU COMENTE ESTA LINHA
       'ownerId': ownerId,
       'healthStatus': healthStatus.toString().split('.').last,
       'heartRateMin': thresholds.heartRateMin,
