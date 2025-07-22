@@ -4,7 +4,7 @@ import 'package:flutter_application_1/pages/measurements_page.dart';
 
 class PetCard extends StatelessWidget {
   final Pet pet;
-  const PetCard({Key? key, required this.pet}) : super(key: key);
+  const PetCard({super.key, required this.pet});
 
   @override
   Widget build(BuildContext context) {
@@ -27,12 +27,12 @@ class PetCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 40,
-                backgroundImage: pet.avatar, // MUDANÇA AQUI
+                backgroundImage: pet.avatar,
+                backgroundColor: Colors.grey[300], // MUDANÇA AQUI
                 // O 'child' só aparece se 'backgroundImage' for nulo.
                 child: pet.avatar == null
                     ? const Icon(Icons.pets, size: 40, color: Colors.white)
                     : null,
-                backgroundColor: Colors.grey[300],
               ),
               const SizedBox(width: 16),
               // Expanded garante que a coluna de texto ocupe o espaço restante, evitando overflow.

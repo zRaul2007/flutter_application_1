@@ -7,10 +7,10 @@ class AlertListItem extends StatelessWidget {
   final Function(String alertId) onAcknowledge;
 
   const AlertListItem({
-    Key? key,
+    super.key,
     required this.alert,
     required this.onAcknowledge,
-  }) : super(key: key);
+  });
 
   Color _getSeverityColor(String severity) {
     switch (severity) {

@@ -4,7 +4,7 @@ import '../providers/pet_provider.dart';
 import '../widgets/alert_list_item.dart';
 
 class AlertsPage extends StatelessWidget {
-  const AlertsPage({Key? key}) : super(key: key);
+  const AlertsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +47,7 @@ class AlertsPage extends StatelessWidget {
                         },
                       ),
                     )
-                    .toList(),
+                    ,
                 const SizedBox(height: 24),
               ],
 
@@ -69,7 +69,7 @@ class AlertsPage extends StatelessWidget {
                             ) {}, // O botão não será exibido, então a função fica vazia.
                       ),
                     )
-                    .toList(),
+                    ,
               ],
             ],
           );

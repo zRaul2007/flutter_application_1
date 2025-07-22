@@ -6,13 +6,27 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart'; // NECESSÁRIO para o banco de dados no desktop/web
-import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
+// ADICIONE A IMPORTAÇÃO PARA O FIREBASE MESSAGING
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package.sqflite_common_ffi/sqflite_ffi.dart'; // NECESSÁRIO para o banco de dados no desktop/web
+import 'package.sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
 import 'package:flutter_application_1/pages/login_page.dart';
 import 'package:flutter_application_1/pages/main_screen.dart';
 import 'package:flutter_application_1/providers/pet_provider.dart';
 import 'package:flutter_application_1/services/auth_service.dart';
+import 'package:flutter_application_1/services/firestore_service.dart';
+
+// --- INÍCIO: MODIFICAÇÃO 1 ---
+// Adicione esta função FORA de qualquer classe.
+// Ela lidará com as notificações recebidas quando o app estiver fechado ou em segundo plano.
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // Você pode inicializar o Firebase aqui também se precisar de mais lógica.
+  // await Firebase.initializeApp();
+  debugPrint("Handling a background message: ${message.messageId}");
+}
+// --- FIM: MODIFICAÇÃO 1 ---
 
 void main() async {
   // Garante que os bindings do Flutter foram inicializados
@@ -49,6 +63,23 @@ void main() async {
     ),
   );
 
+  // --- INÍCIO: MODIFICAÇÃO 2 ---
+  // Configura os handlers de notificação.
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    debugPrint('Recebeu uma mensagem com o app em primeiro plano!');
+    if (message.notification != null) {
+      debugPrint(
+          'A notificação continha um título: ${message.notification!.title}');
+      debugPrint(
+          'A notificação continha um corpo: ${message.notification!.body}');
+      // Aqui você poderia, por exemplo, exibir um diálogo ou um SnackBar
+      // para o usuário que está com o app aberto.
+    }
+  });
+  // --- FIM: MODIFICAÇÃO 2 ---
+
   runApp(
     MultiProvider(
       providers: [
@@ -61,7 +92,7 @@ void main() async {
 }
 
 class MeuApp extends StatelessWidget {
-  const MeuApp({Key? key}) : super(key: key);
+  const MeuApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +118,6 @@ class MeuApp extends StatelessWidget {
           backgroundColor: Colors.blue[800],
           foregroundColor: Colors.white,
         ),
-        // A propriedade 'cardTheme' espera um objeto do tipo 'CardThemeData'.
         cardTheme: CardThemeData(
           elevation: 2,
           shape: RoundedRectangleBorder(
@@ -121,9 +151,7 @@ class MeuApp extends StatelessWidget {
           backgroundColor: Colors.grey[900],
           foregroundColor: Colors.white,
         ),
-        // --- CORREÇÃO AQUI TAMBÉM ---
         cardTheme: CardThemeData(
-          // Alterado de CardTheme para CardThemeData
           color: Colors.grey[850],
           elevation: 4,
           shape: RoundedRectangleBorder(
@@ -139,7 +167,7 @@ class MeuApp extends StatelessWidget {
 
 // Widget que gerencia o estado da autenticação e a navegação
 class AuthWrapper extends StatelessWidget {
-  const AuthWrapper({Key? key}) : super(key: key);
+  const AuthWrapper({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -159,9 +187,14 @@ class AuthWrapper extends StatelessWidget {
         // Se o snapshot tem dados, significa que o usuário está logado
         if (snapshot.hasData) {
           final petProvider = Provider.of<PetProvider>(context, listen: false);
-          // **AQUI ESTÁ A MÁGICA**: Carrega os pets associados a este usuário
-          petProvider.loadUserPets(snapshot.data!.uid);
-          // Mostra a tela principal
+          final user = snapshot.data!;
+
+          // **CHAMADA PARA SALVAR O TOKEN**
+          // Esta linha garante que o token do dispositivo seja salvo no Firestore
+          // toda vez que o usuário logar.
+          FirestoreService().saveUserToken(user.uid);
+
+          petProvider.loadUserPets(user.uid);
           return const MainScreen();
         }
 
@@ -172,6 +205,3 @@ class AuthWrapper extends StatelessWidget {
     );
   }
 }
-
-// A classe MeuApp é o widget principal da aplicação.
-// Ela define o tema da aplicação e a página inicial, que é a AuthWrapper.

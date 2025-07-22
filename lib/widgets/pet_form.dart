@@ -10,8 +10,7 @@ class PetForm extends StatefulWidget {
   final Pet? initialPet;
   final PetSubmitCallback onSubmit;
 
-  const PetForm({Key? key, required this.onSubmit, this.initialPet})
-    : super(key: key);
+  const PetForm({super.key, required this.onSubmit, this.initialPet});
 
   @override
   _PetFormState createState() => _PetFormState();

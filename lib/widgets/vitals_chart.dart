@@ -8,11 +8,11 @@ class VitalsChart extends StatelessWidget {
   final Color lineColor;
 
   const VitalsChart({
-    Key? key,
+    super.key,
     required this.title,
     required this.dataPoints,
     required this.lineColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -10,7 +10,7 @@ class PetProvider with ChangeNotifier {
   final FirestoreService _firestoreService =
       FirestoreService(); // Instancia o serviço
   List<Pet> _pets = [];
-  List<Alert> _alerts = [];
+  final List<Alert> _alerts = [];
   String? _currentUserId;
   Timer? _simulationTimer;
 

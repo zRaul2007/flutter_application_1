@@ -7,7 +7,7 @@ import '../widgets/pet_form.dart';
 
 class AddEditPetPage extends StatelessWidget {
   final Pet? pet;
-  const AddEditPetPage({Key? key, this.pet}) : super(key: key);
+  const AddEditPetPage({super.key, this.pet});
 
   @override
   Widget build(BuildContext context) {

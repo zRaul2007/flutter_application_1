@@ -8,7 +8,7 @@ import '../widgets/vitals_chart.dart';
 
 class MeasurementsPage extends StatefulWidget {
   final Pet pet;
-  const MeasurementsPage({Key? key, required this.pet}) : super(key: key);
+  const MeasurementsPage({super.key, required this.pet});
 
   @override
   _MeasurementsPageState createState() => _MeasurementsPageState();

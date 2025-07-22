@@ -5,13 +5,16 @@ import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../models/pet_models.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
+  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
 
   // Coleção de pets
   late final CollectionReference<Pet> _petsRef;
+  late final CollectionReference _usersRef;
 
   FirestoreService() {
     _petsRef = _db
@@ -20,6 +23,30 @@ class FirestoreService {
           fromFirestore: (snapshots, _) => Pet.fromMap(snapshots.data()!),
           toFirestore: (pet, _) => pet.toMap(),
         );
+    _usersRef = _db.collection('users');
+  }
+
+  // NOVO: Método para salvar o token FCM do usuário
+  Future<void> saveUserToken(String userId) async {
+    try {
+      // Solicita permissão para notificações (essencial no iOS)
+      await _fcm.requestPermission();
+
+      // Obtém o token do dispositivo
+      String? token = await _fcm.getToken();
+
+      if (token != null) {
+        // Salva o token no Firestore, associado ao ID do usuário
+        // Usamos SetOptions(merge: true) para não sobrescrever outros dados do usuário
+        await _usersRef.doc(userId).set({
+          'fcmToken': token,
+          'lastUpdated': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+        debugPrint("FCM Token salvo para o usuário: $userId");
+      }
+    } catch (e) {
+      debugPrint("Erro ao salvar o token FCM: $e");
+    }
   }
 
   // --- Operações com Imagens (Firebase Storage) ---

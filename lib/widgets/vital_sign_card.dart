@@ -8,13 +8,13 @@ class VitalSignCard extends StatelessWidget {
   final Color color;
 
   const VitalSignCard({
-    Key? key,
+    super.key,
     required this.icon,
     required this.label,
     required this.value,
     required this.unit,
     this.color = Colors.black, // Cor padrão
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

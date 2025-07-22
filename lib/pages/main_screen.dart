@@ -6,7 +6,7 @@ import 'settings_page.dart';
 // MainScreen será um StatefulWidget, pois precisa gerenciar o estado
 // do item de navegação selecionado no momento.
 class MainScreen extends StatefulWidget {
-  const MainScreen({Key? key}) : super(key: key);
+  const MainScreen({super.key});
 
   @override
   _MainScreenState createState() => _MainScreenState();
